@@ -1,0 +1,53 @@
+MODULE main
+DEFINE
+  n:=10;
+VAR
+  semaphore : boolean;
+  next_process: 1..n;
+  proc1:process user(semaphore,next_process,n,1); 
+  proc2:process user(semaphore,next_process,n,2); 
+  proc3:process user(semaphore,next_process,n,3); 
+  proc4:process user(semaphore,next_process,n,4); 
+  proc5:process user(semaphore,next_process,n,5); 
+  proc6:process user(semaphore,next_process,n,6); 
+  proc7:process user(semaphore,next_process,n,7); 
+  proc8:process user(semaphore,next_process,n,8); 
+  proc9:process user(semaphore,next_process,n,9); 
+  proc10:process user(semaphore,next_process,n,10); 
+ASSIGN
+
+ init(semaphore) := FALSE;	
+SPEC AG ! (proc1.state = critical & proc2.state = critical & proc3.state = critical & proc4.state = critical & proc5.state = critical & proc6.state = critical & proc7.state = critical & proc8.state = critical & proc9.state = critical & proc10.state = critical);
+SPEC AG (proc1.state = entering -> AF proc1.state = critical);
+
+MODULE user(semaphore, next_process, n, number)
+VAR
+  state : {idle, entering, critical, exiting};
+ASSIGN
+  init(state) := idle;
+  next(state) :=
+    case
+      state = idle : 						{idle,entering};
+      state = entering & !semaphore & next_process=number: 	critical;
+      state = critical : 					{critical, exiting};
+      state = exiting : 					idle;
+      TRUE: 							state;
+    esac;
+
+  next(semaphore) :=
+    case
+      state = entering & next_process=number: TRUE;
+      state = exiting: 	FALSE;
+      TRUE: 		semaphore;
+    esac;
+
+  next(next_process) :=
+    case
+      state = exiting : (next_process mod n) + 1;
+      TRUE:				next_process;
+    esac;
+
+FAIRNESS
+  running
+FAIRNESS !(state = idle)
+FAIRNESS !(state = critical)

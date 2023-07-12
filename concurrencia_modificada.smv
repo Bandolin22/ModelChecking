@@ -1,0 +1,47 @@
+MODULE main
+VAR
+  semaphore : boolean;
+  last_process : {1,2};
+  proc1 : process user(semaphore,last_process,1);
+  proc2 : process user(semaphore,last_process,2);
+
+ASSIGN
+
+ init(semaphore) := FALSE;	
+
+SPEC AG ! (proc1.state = critical & proc2.state = critical);
+SPEC AG (proc1.state = entering -> AF proc1.state = critical);
+
+MODULE user(semaphore, last_process, number)
+VAR
+  state : {idle, entering, critical, exiting};
+ASSIGN
+  init(state) := idle;
+  next(state) :=
+    case
+      state = idle : 						{idle,entering};
+      state = entering & !semaphore & last_process!=number: 	critical;
+      state = critical : 					{critical, exiting};
+      state = exiting : 					idle;
+      TRUE: 							state;
+    esac;
+
+  next(semaphore) :=
+    case
+      state = entering & last_process!=number: TRUE;
+      state = exiting: 	FALSE;
+      TRUE: 		semaphore;
+    esac;
+
+  next(last_process) :=
+    case
+      state = exiting: 	number;
+      TRUE:		last_process;
+    esac;
+
+FAIRNESS
+  running
+FAIRNESS !(state = idle)
+FAIRNESS !(state = critical)
+
+
